@@ -79,7 +79,13 @@ function startGame(roomCode) {
         p.isDead = false;
     });
 
-    return { gameState: getInternalGameState(room) };
+    return {
+        players: room.players.map(p => ({
+            id: p.id,
+            role: p.role,
+            word: p.secretWord
+        }))
+    };
 }
 
 function handleVote(roomCode, voterId, targetId) {

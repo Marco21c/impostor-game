@@ -2,7 +2,7 @@ const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');
 const cors = require('cors');
-const { createGameMsg, joinRoom, startGame, handleVote, removePlayer, restartGame, getRoomState } = require('./gameLogic');
+const { joinRoom, startGame, handleVote, removePlayer, restartGame, getRoomState } = require('./gameLogic');
 
 const app = express();
 app.use(cors());
@@ -34,12 +34,24 @@ io.on('connection', (socket) => {
 
     socket.on('start_game', ({ roomCode }) => {
         const result = startGame(roomCode);
+
         if (result.error) {
             socket.emit('error', result.error);
-        } else {
-            io.to(roomCode).emit('game_started', result.gameState);
-            io.to(roomCode).emit('room_update', getRoomState(roomCode));
+            return;
         }
+
+        const roomState = getRoomState(roomCode);
+
+        // 1️⃣ Estado general (sin secretos)
+        io.to(roomCode).emit('room_update', roomState);
+
+        // 2️⃣ Datos privados por jugador
+        result.players.forEach(player => {
+            io.to(player.id).emit('game_started', {
+                myRole: player.role,
+                myWord: player.word
+            });
+        });
     });
 
     socket.on('vote', ({ roomCode, voterId, targetId }) => {
