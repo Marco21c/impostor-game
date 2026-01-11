@@ -32,6 +32,15 @@ function App() {
     function onGameUpdate(gameState) {
       setRoom(prev => ({ ...prev, ...gameState }));
     }
+    function onRoleAssigned(data) {
+      setRoom(prev => ({
+        ...prev,
+        myRole: data.role,
+        myWord: data.secretWord,
+        category: data.category
+      }));
+    }
+
 
     function onGameReset() {
       setRoom(prev => ({ ...prev, gameState: 'LOBBY', word: null, impostorId: null, votes: {} }));
@@ -48,6 +57,7 @@ function App() {
 
     socket.on('connect', onConnect);
     socket.on('disconnect', onDisconnect);
+    socket.on("role-assigned", onRoleAssigned);
     socket.on('room_update', onRoomUpdate);
     socket.on('game_started', onGameStarted);
     socket.on('game_update', onGameUpdate);
@@ -64,6 +74,7 @@ function App() {
       socket.off('game_reset', onGameReset);
       socket.off('game_over', onGameOver);
       socket.off('error', onError);
+      socket.off("role-assigned", onRoleAssigned);
       socket.disconnect();
     };
   }, []);
