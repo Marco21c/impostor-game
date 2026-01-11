@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { socket } from './socket';
 import Lobby from './components/Lobby';
 import GameRoom from './components/GameRoom';
+import MusicPlayer from './components/MusicPlayer';
 
 function App() {
   const [isConnected, setIsConnected] = useState(socket.connected);
@@ -44,20 +45,8 @@ function App() {
 
 
     function onGameReset() {
-      setRoom(prev => ({
-        ...prev,
-        gameState: 'LOBBY',
-        players: prev.players.map(p => ({
-          ...p,
-          votedFor: null,
-          isDead: false
-        })),
-        myRole: null,
-        myWord: null,
-        results: null
-      }));
+      setRoom(prev => ({ ...prev, gameState: 'LOBBY', word: null, impostorId: null, votes: {} }));
     }
-
 
     function onGameOver(results) {
       setRoom(prev => ({ ...prev, gameState: 'RESULTS', results }));
@@ -103,8 +92,17 @@ function App() {
       {!room ? (
         <Lobby />
       ) : (
-        <GameRoom room={room} myId={socket.id} />
+        <GameRoom
+          room={room}
+          myId={socket.id}
+          onLeave={() => {
+            socket.emit('leave_room');
+            setRoom(null);
+          }}
+        />
       )}
+
+      <MusicPlayer />
     </div>
   );
 }

@@ -4,7 +4,7 @@ import { socket } from '../socket';
 import Chat from './Chat';
 
 
-export default function GameRoom({ room, myId }) {
+export default function GameRoom({ room, myId, onLeave }) {
     const isHost = room.players.find(p => p.id === myId)?.isHost;
     const me = room.players.find(p => p.id === myId);
     // ...
@@ -26,8 +26,10 @@ export default function GameRoom({ room, myId }) {
     if (!me) return <div>Sincronizando jugador...</div>;
     const myRole = room.myRole;
     const myWord = room.myWord;
+    const [selectedCategory, setSelectedCategory] = useState("");
+
     const handleStart = () => {
-        socket.emit('start_game', { roomCode: room.roomCode });
+        socket.emit('start_game', { roomCode: room.roomCode, category: selectedCategory });
     };
 
     const handleVote = (targetId) => {
@@ -44,11 +46,20 @@ export default function GameRoom({ room, myId }) {
     };
 
     if (room.gameState === 'LOBBY') {
+        const categories = room.availableCategories || [];
+
         return (
-            <div className="w-full max-w-2xl p-4 md:p-8">
+            <div className="w-full max-w-2xl p-4 md:p-8 relative">
+                <button
+                    onClick={onLeave}
+                    className="absolute top-2 left-2 md:top-8 md:left-8 text-game-muted hover:text-white transition-colors flex items-center gap-1"
+                >
+                    ⬅ Salir
+                </button>
 
                 <div className="text-center mb-6 md:mb-10">
                     <h2 className="text-xl md:text-2xl text-game-muted font-light mb-2">CÓDIGO DE SALA</h2>
+                    {/* ... code ... */}
                     <div
                         onClick={copyCode}
                         className="text-4xl md:text-6xl font-black tracking-widest cursor-pointer hover:text-game-primary transition-colors font-mono select-all"
@@ -66,7 +77,37 @@ export default function GameRoom({ room, myId }) {
                         </div>
                     ))}
                 </div>
-                <p>Debe haber al menos 3 jugadores </p>
+
+                {isHost && (
+                    <div className="mb-8">
+                        <label className="block text-game-muted text-sm mb-2 uppercase tracking-wider">Categoría</label>
+                        <div className="flex flex-wrap gap-2">
+                            <button
+                                onClick={() => setSelectedCategory("")}
+                                className={`px-4 py-2 rounded-lg border transition-all ${selectedCategory === ""
+                                    ? 'bg-game-accent text-game-bg border-game-accent font-bold'
+                                    : 'bg-game-card border-game-muted/30 text-game-muted hover:border-game-accent/50'
+                                    }`}
+                            >
+                                🎲 Aleatorio
+                            </button>
+                            {categories.map(cat => (
+                                <button
+                                    key={cat}
+                                    onClick={() => setSelectedCategory(cat)}
+                                    className={`px-4 py-2 rounded-lg border transition-all ${selectedCategory === cat
+                                        ? 'bg-game-primary text-white border-game-primary font-bold'
+                                        : 'bg-game-card border-game-muted/30 text-game-muted hover:border-game-primary/50'
+                                        }`}
+                                >
+                                    {cat}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+                )}
+
+                <p className="text-center mb-4 text-game-muted">Min. 3 jugadores</p>
                 {isHost ? (
                     <button
                         onClick={handleStart}
@@ -75,7 +116,6 @@ export default function GameRoom({ room, myId }) {
                     >
                         {room.players.length < 3 ? 'Esperando jugadores ...' : 'COMENZAR PARTIDA'}
                     </button>
-
                 ) : (
                     <div className="text-center text-game-muted animate-pulse">
                         Esperando a que el anfitrión inicie...
@@ -203,6 +243,13 @@ export default function GameRoom({ room, myId }) {
                         Jugar de Nuevo
                     </button>
                 )}
+
+                <button
+                    onClick={onLeave}
+                    className="mt-6 text-game-muted hover:text-white transition-colors underline"
+                >
+                    Salir al Lobby Principal
+                </button>
             </div>
         );
     }
