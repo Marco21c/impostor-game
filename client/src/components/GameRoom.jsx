@@ -8,7 +8,7 @@ export default function GameRoom({ room, myId, onLeave }) {
     const isHost = room.players.find(p => p.id === myId)?.isHost;
     const me = room.players.find(p => p.id === myId);
     // ...
-    const [timeLeft, setTimeLeft] = useState(30);
+    const [timeLeft, setTimeLeft] = useState(60);
 
     useEffect(() => {
         if (room.endTime && room.gameState === 'PLAYING') {
