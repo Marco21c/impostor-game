@@ -44,7 +44,7 @@ export default function Chat({ roomCode, myId, initialMessages = [] }) {
     };
 
     return (
-        <div className="flex flex-col h-[500px] w-full md:w-80 bg-game-card rounded-xl border border-game-muted/20 shadow-xl overflow-hidden">
+        <div className="flex flex-col h-80 md:h-[500px] w-full md:w-80 bg-game-card rounded-xl border border-game-muted/20 shadow-xl overflow-hidden mt-6 lg:mt-0">
             <div className="p-3 bg-game-primary/10 border-b border-game-muted/20">
                 <h3 className="font-bold text-game-text text-sm uppercase tracking-wider">Chat de Sala</h3>
             </div>

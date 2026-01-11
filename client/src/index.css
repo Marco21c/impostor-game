@@ -4,7 +4,7 @@
 
 @layer base {
   body {
-    @apply bg-game-bg text-game-text font-sans antialiased overflow-hidden;
+    @apply bg-game-bg text-game-text font-sans antialiased;
   }
 }
 

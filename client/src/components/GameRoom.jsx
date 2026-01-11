@@ -1,4 +1,5 @@
 
+import { useState, useEffect } from 'react';
 import { socket } from '../socket';
 import Chat from './Chat';
 
@@ -6,6 +7,22 @@ import Chat from './Chat';
 export default function GameRoom({ room, myId }) {
     const isHost = room.players.find(p => p.id === myId)?.isHost;
     const me = room.players.find(p => p.id === myId);
+    // ...
+    const [timeLeft, setTimeLeft] = useState(30);
+
+    useEffect(() => {
+        if (room.endTime && room.gameState === 'PLAYING') {
+            const interval = setInterval(() => {
+                const now = Date.now();
+                const diff = Math.ceil((room.endTime - now) / 1000);
+                setTimeLeft(diff > 0 ? diff : 0);
+
+                if (diff <= 0) clearInterval(interval);
+            }, 1000);
+            return () => clearInterval(interval);
+        }
+    }, [room.endTime, room.gameState]);
+
     if (!me) return <div>Sincronizando jugador...</div>;
     const myRole = room.myRole;
     const myWord = room.myWord;
@@ -28,13 +45,13 @@ export default function GameRoom({ room, myId }) {
 
     if (room.gameState === 'LOBBY') {
         return (
-            <div className="w-full max-w-2xl p-8">
+            <div className="w-full max-w-2xl p-4 md:p-8">
 
-                <div className="text-center mb-10">
-                    <h2 className="text-2xl text-game-muted font-light mb-2">CÓDIGO DE SALA</h2>
+                <div className="text-center mb-6 md:mb-10">
+                    <h2 className="text-xl md:text-2xl text-game-muted font-light mb-2">CÓDIGO DE SALA</h2>
                     <div
                         onClick={copyCode}
-                        className="text-6xl font-black tracking-widest cursor-pointer hover:text-game-primary transition-colors font-mono select-all"
+                        className="text-4xl md:text-6xl font-black tracking-widest cursor-pointer hover:text-game-primary transition-colors font-mono select-all"
                     >
                         {room.roomCode}
                     </div>
@@ -79,7 +96,13 @@ export default function GameRoom({ room, myId }) {
 
                     {/* Role Card */}
                     <div className="flex-1">
-                        <div className="bg-game-card p-8 rounded-2xl border-2 border-game-primary/20 text-center shadow-xl mb-6">
+                        <div className="bg-game-card p-8 rounded-2xl border-2 border-game-primary/20 text-center shadow-xl mb-6 relative overflow-hidden">
+                            {/* Timer Overlay */}
+                            <div className={`absolute top-0 right-0 p-3 rounded-bl-xl font-mono font-bold text-xl ${timeLeft <= 10 ? 'bg-red-600 text-white animate-pulse' : 'bg-game-surface text-game-primary'
+                                }`}>
+                                ⏱️ {timeLeft}s
+                            </div>
+
                             <h3 className="text-game-muted uppercase tracking-widest text-sm mb-4">Tu Rol</h3>
                             <div className="text-4xl font-extrabold mb-2 text-white">
                                 {myRole === 'impostor' ? '👻 IMPOSTOR' : 'detective CIUDADANO'}
