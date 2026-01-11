@@ -52,7 +52,7 @@ export default function Chat({ roomCode, myId, initialMessages = [] }) {
             <div className="flex-1 overflow-y-auto p-4 space-y-3 custom-scrollbar">
                 {messages.length === 0 && (
                     <p className="text-center text-game-muted text-xs italic opacity-50 mt-4">
-                        ¡Comienza la discusión!
+                        ¡Comienza la discusión! <br /> Debes ingresar una palabra y defenderla.
                     </p>
                 )}
                 {messages.map((msg) => {
@@ -66,8 +66,8 @@ export default function Chat({ roomCode, myId, initialMessages = [] }) {
                                 {msg.isDead && <span className="text-[10px] bg-red-900 text-red-100 px-1 rounded">MUERTO</span>}
                             </div>
                             <div className={`px-3 py-2 rounded-lg text-sm max-w-[90%] break-words ${isMe
-                                    ? 'bg-game-primary text-white rounded-tr-none'
-                                    : 'bg-game-surface border border-game-muted/30 text-game-text rounded-tl-none'
+                                ? 'bg-game-primary text-white rounded-tr-none'
+                                : 'bg-game-surface border border-game-muted/30 text-game-text rounded-tl-none'
                                 }`}>
                                 {msg.text}
                             </div>
