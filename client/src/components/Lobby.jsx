@@ -47,7 +47,7 @@ export default function Lobby() {
                         onClick={handleCreate}
                         className="w-full py-3 px-4 bg-gradient-to-r from-game-primary to-game-secondary hover:opacity-90 rounded-lg font-bold text-white shadow-lg shadow-game-primary/25 transition-all transform hover:-translate-y-0.5"
                     >
-                        Crear Nueva Sala
+                        Crear Sala
                     </button>
 
                     <div className="flex gap-2">
