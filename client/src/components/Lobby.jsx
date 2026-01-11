@@ -65,15 +65,16 @@ export default function Lobby() {
                         >
                             Unirse
                         </button>
-                        <button
-                            onClick={() => socket.emit('quick_game')}
-                            className="w-full mt-4 py-3 bg-game-accent text-white font-bold rounded-xl"
-                        >
 
-                            ⚡ PARTIDA RÁPIDA
-                        </button>
 
                     </div>
+                    <button
+                        onClick={() => socket.emit('quick_game')}
+                        className="w-full mt-4 py-3 bg-game-accent text-white font-bold rounded-xl"
+                    >
+
+                        ⚡ PARTIDA RÁPIDA
+                    </button>
                 </div>
             </div>
         </div>

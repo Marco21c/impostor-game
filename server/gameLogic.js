@@ -22,7 +22,8 @@ function joinRoom(roomCode, playerName, socketId) {
             impostorId: null,
             category: null,
             votes: {},
-            history: [] // who played what
+            history: [], // who played what
+            chat: []
         };
     } else {
         roomCode = roomCode.toUpperCase();
@@ -67,6 +68,7 @@ function startGame(roomCode) {
     room.word = word;
     room.gameState = 'PLAYING';
     room.votes = {};
+    room.chat = [];
 
     // Assign Roles
     const impostorIndex = Math.floor(Math.random() * room.players.length);
@@ -78,30 +80,33 @@ function startGame(roomCode) {
         p.votedFor = null;
         p.isDead = false;
     });
-    setTimeout(() => {
-        botVote(room);
-    }, 1500);
     return {
         players: room.players.map(p => ({
             id: p.id,
             role: p.role,
-            word: p.secretWord
+            word: p.secretWord,
+            isBot: p.isBot
         }))
     };
 }
-function botVote(room) {
+
+function generateBotVotes(roomCode) {
+    const room = rooms[roomCode];
+    if (!room) return [];
+
+    const votes = [];
     room.players
         .filter(p => p.isBot && !p.isDead)
         .forEach(bot => {
             const targets = room.players.filter(
                 p => p.id !== bot.id && !p.isDead
             );
-
-            const target = targets[Math.floor(Math.random() * targets.length)];
-
-            bot.votedFor = target.id;
-            room.votes[bot.id] = target.id;
+            if (targets.length > 0) {
+                const target = targets[Math.floor(Math.random() * targets.length)];
+                votes.push({ voterId: bot.id, targetId: target.id });
+            }
         });
+    return votes;
 }
 
 function addBotsToRoom(roomCode, count = 3) {
@@ -170,33 +175,66 @@ function handleVote(roomCode, voterId, targetId) {
                 };
             }
 
-            const aliveCitizens = room.players.filter(p => !p.isDead && p.role === 'citizen');
-            if (aliveCitizens.length <= 1) { // 1v1 impostor wins usually? or ratio. 
-                // Impostor Wins
+            // A Citizen was eliminated
+            const remainingPlayers = room.players.filter(p => !p.isDead);
+
+            if (remainingPlayers.length <= 2) {
+                // Impostor Wins (Impostor + 1 Citizen left)
                 room.gameState = 'RESULTS';
                 return {
                     gameOver: true,
-                    results: { winner: 'IMPOSTOR', impostorName: impostor.name, eliminatedName: eliminated.name }
+                    results: { winner: 'IMPOSTOR', impostorName: impostor.name, eliminatedName: eliminated.name, reason: "Impostor survived until the end" }
                 };
             }
 
-            // Continue? Or just one round for MVP. Let's do One Round Kill for MVP simplification.
-            // Usually Spyfall is: Vote -> If correct, Citizens win. If wrong, Impostor wins.
-            // Im implementing: If wrong person voted out, Impostor Wins Instantly for MVP simplicity.
-            room.gameState = 'RESULTS';
+            // Continue to Next Round
+            // Reset votes
+            room.players.forEach(p => p.votedFor = null);
+            room.votes = {}; // Clear vote map
+
             return {
-                gameOver: true,
-                results: { winner: 'IMPOSTOR', impostorName: impostor.name, eliminatedName: eliminated.name, reason: "Wrong person voted out" }
+                update: true,
+                nextRound: true, // Signal to trigger bots again
+                gameState: getRoomState(roomCode),
+                message: `${eliminated.name} was eliminated. The game continues!`
             };
         } else {
-            // Tie - No one eliminated? Or Re-vote?
-            // Reset votes for MVP
+            // Tie - Re-vote
             room.players.forEach(p => p.votedFor = null);
-            return { update: true, gameState: getRoomState(roomCode) };
+            room.votes = {};
+
+            return {
+                update: true,
+                nextRound: true, // Signal to trigger bots again (it's a re-vote)
+                gameState: getRoomState(roomCode),
+                message: "Tie! Vote again."
+            };
         }
     }
 
     return { update: true, gameState: getRoomState(roomCode) };
+}
+
+function handleChat(roomCode, playerId, message) {
+    const room = rooms[roomCode];
+    if (!room) return null;
+
+    const player = room.players.find(p => p.id === playerId);
+    if (!player) return null;
+
+    const msg = {
+        id: Date.now() + Math.random(),
+        playerId,
+        playerName: player.name,
+        text: message,
+        isDead: player.isDead,
+        timestamp: Date.now()
+    };
+
+    room.chat.push(msg);
+    if (room.chat.length > 50) room.chat.shift(); // Keep last 50 messages
+
+    return msg;
 }
 
 function removePlayer(socketId) {
@@ -237,6 +275,7 @@ function restartGame(roomCode) {
             p.votedFor = null;
             p.isDead = false;
         });
+        room.chat = [];
     }
     return {};
 }
@@ -262,7 +301,8 @@ function getRoomState(roomCode) {
             votedFor: p.votedFor // Reveal who voted for whom? Only after?
         })),
         gameState: room.gameState,
-        category: room.category // Reveal category
+        category: room.category, // Reveal category
+        chat: room.chat
     };
 }
 
@@ -280,5 +320,7 @@ module.exports = {
     removePlayer,
     restartGame,
     getRoomState,
-    addBotsToRoom
+    addBotsToRoom,
+    generateBotVotes,
+    handleChat
 };

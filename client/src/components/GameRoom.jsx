@@ -1,5 +1,6 @@
 
 import { socket } from '../socket';
+import Chat from './Chat';
 
 
 export default function GameRoom({ room, myId }) {
@@ -28,6 +29,7 @@ export default function GameRoom({ room, myId }) {
     if (room.gameState === 'LOBBY') {
         return (
             <div className="w-full max-w-2xl p-8">
+
                 <div className="text-center mb-10">
                     <h2 className="text-2xl text-game-muted font-light mb-2">CÓDIGO DE SALA</h2>
                     <div
@@ -67,65 +69,87 @@ export default function GameRoom({ room, myId }) {
     }
 
     if (room.gameState === 'PLAYING') {
-        const alivePlayers = room.players.filter(p => !p.isDead && p.id !== myId);
+        const otherPlayers = room.players.filter(p => p.id !== myId);
 
         return (
-            <div className="w-full max-w-4xl p-4 flex flex-col md:flex-row gap-8">
-                {/* Role Card */}
-                <div className="flex-1">
-                    <div className="bg-game-card p-8 rounded-2xl border-2 border-game-primary/20 text-center shadow-xl mb-6">
-                        <h3 className="text-game-muted uppercase tracking-widest text-sm mb-4">Tu Rol</h3>
-                        <div className="text-4xl font-extrabold mb-2 text-white">
-                            {myRole === 'impostor' ? '👻 IMPOSTOR' : 'detective CIUDADANO'}
-                        </div>
-                        <div className="mt-8 p-6 bg-game-bg rounded-xl border border-game-muted/30">
-                            <p className="text-game-muted text-sm mb-2">Tu palabra secreta es:</p>
-                            <p className="text-3xl font-mono text-game-accent">{myWord || '???'}</p>
-                            {myRole === 'citizen' && (
-                                <p className="text-xs text-game-muted mt-4">Categoría: {room.category}</p>
+            <div className="flex flex-col lg:flex-row gap-6 w-full max-w-7xl p-4 items-start justify-center">
+
+                {/* Main Game Area */}
+                <div className="flex-1 flex flex-col md:flex-row gap-8 w-full">
+
+                    {/* Role Card */}
+                    <div className="flex-1">
+                        <div className="bg-game-card p-8 rounded-2xl border-2 border-game-primary/20 text-center shadow-xl mb-6">
+                            <h3 className="text-game-muted uppercase tracking-widest text-sm mb-4">Tu Rol</h3>
+                            <div className="text-4xl font-extrabold mb-2 text-white">
+                                {myRole === 'impostor' ? '👻 IMPOSTOR' : 'detective CIUDADANO'}
+                            </div>
+                            <div className="mt-8 p-6 bg-game-bg rounded-xl border border-game-muted/30">
+                                <p className="text-game-muted text-sm mb-2">Tu palabra secreta es:</p>
+                                <p className="text-3xl font-mono text-game-accent">{myWord || '???'}</p>
+                                {myRole === 'citizen' && (
+                                    <p className="text-xs text-game-muted mt-4">Categoría: {room.category}</p>
+                                )}
+                            </div>
+                            {myRole === 'impostor' && (
+                                <p className="text-sm text-game-muted mt-4 p-2 bg-game-accent/10 rounded">
+                                    Intenta pasar desapercibido y adivinar la palabra de los demás.
+                                </p>
+                            )}
+                            {me.isDead && (
+                                <div className="mt-6 p-4 bg-red-900/30 border border-red-500 rounded-xl text-red-500 font-bold animate-pulse">
+                                    💀 HAS MUERTO (Modo Espectador)
+                                </div>
                             )}
                         </div>
-                        {myRole === 'impostor' && (
-                            <p className="text-sm text-game-muted mt-4 p-2 bg-game-accent/10 rounded">
-                                Intenta pasar desapercibido y adivinar la palabra de los demás.
+                    </div>
+
+                    {/* Voting Area */}
+                    <div className="flex-1">
+                        <h3 className="text-xl font-bold mb-4">Jugadores</h3>
+                        {me.isDead ? (
+                            <div className="p-4 bg-game-card border border-game-muted/30 rounded-xl text-center text-game-muted mb-4">
+                                Ya no puedes votar, pero puedes ver el desarrollo de la partida.
+                            </div>
+                        ) : null}
+
+                        <div className="grid grid-cols-1 gap-3">
+                            {otherPlayers.map(p => (
+                                <button
+                                    key={p.id}
+                                    onClick={() => !p.isDead && !me.isDead && handleVote(p.id)}
+                                    disabled={me.votedFor || p.isDead || me.isDead}
+                                    className={`p-4 rounded-xl border flex justify-between items-center transition-all ${p.isDead
+                                        ? 'bg-red-900/20 border-red-900/50 opacity-70 cursor-not-allowed'
+                                        : me.votedFor === p.id
+                                            ? 'bg-game-primary text-white border-game-primary'
+                                            : 'bg-game-card border-game-muted/30 hover:bg-game-card/80 hover:border-game-primary/50'
+                                        }`}
+                                >
+                                    <div className="flex items-center gap-2">
+                                        <span className={`font-bold ${p.isDead ? 'text-red-500 line-through' : 'text-game-text'}`}>
+                                            {p.name}
+                                        </span>
+                                        {p.isDead && <span className="text-xs bg-red-900 text-red-200 px-2 py-0.5 rounded">MUERTO</span>}
+                                    </div>
+
+                                    {me.votedFor === p.id && !p.isDead && <span>VOTADO</span>}
+                                </button>
+                            ))}
+                        </div>
+
+                        {!me.isDead && me.votedFor && (
+                            <p className="text-center text-game-muted text-sm mt-4 animate-pulse">
+                                Esperando a los demás votos...
                             </p>
                         )}
                     </div>
                 </div>
 
-                {/* Voting Area */}
-                <div className="flex-1">
-                    <h3 className="text-xl font-bold mb-4">Votar para eliminar</h3>
-                    {me.isDead ? (
-                        <div className="p-4 bg-red-900/20 border border-red-500/50 rounded-xl text-center text-red-400">
-                            Estás muerto. No puedes votar.
-                        </div>
-                    ) : (
-                        <div className="grid grid-cols-1 gap-3">
-                            {alivePlayers.map(p => (
-                                <button
-                                    key={p.id}
-                                    onClick={() => handleVote(p.id)}
-                                    disabled={me.votedFor}
-                                    className={`p-4 rounded-xl border flex justify-between items-center transition-all ${me.votedFor === p.id
-                                        ? 'bg-game-primary text-white border-game-primary'
-                                        : 'bg-game-card border-game-muted/30 hover:bg-game-card/80 hover:border-game-primary/50'
-                                        }`}
-                                >
-                                    <span className="font-bold">{p.name}</span>
-                                    {me.votedFor === p.id && <span>VOTADO</span>}
-                                </button>
-                            ))}
-                            {me.votedFor && (
-                                <p className="text-center text-game-muted text-sm mt-4 animate-pulse">
-                                    Esperando a los demás votos...
-                                </p>
-                            )}
-                        </div>
-                    )}
-                </div>
-            </div>
-        );
+                {/* Chat Area - Sidebar */}
+                <Chat roomCode={room.roomCode} myId={myId} initialMessages={room.chat} />
+
+            </div>);
     }
 
     if (room.gameState === 'RESULTS') {

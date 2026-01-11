@@ -42,9 +42,22 @@ function App() {
     }
 
 
+
     function onGameReset() {
-      setRoom(prev => ({ ...prev, gameState: 'LOBBY', word: null, impostorId: null, votes: {} }));
+      setRoom(prev => ({
+        ...prev,
+        gameState: 'LOBBY',
+        players: prev.players.map(p => ({
+          ...p,
+          votedFor: null,
+          isDead: false
+        })),
+        myRole: null,
+        myWord: null,
+        results: null
+      }));
     }
+
 
     function onGameOver(results) {
       setRoom(prev => ({ ...prev, gameState: 'RESULTS', results }));
