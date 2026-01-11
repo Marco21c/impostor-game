@@ -1,0 +1,13 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-game-bg text-game-text font-sans antialiased overflow-hidden;
+  }
+}
+
+.card-hover {
+  @apply transition-all duration-300 hover:scale-[1.02] hover:shadow-lg hover:shadow-game-primary/20;
+}
