@@ -42,10 +42,10 @@ io.on('connection', (socket) => {
 
         const roomState = getRoomState(roomCode);
 
-        // 1️⃣ Estado general (sin secretos)
+        // Estado general (sin secretos)
         io.to(roomCode).emit('room_update', roomState);
 
-        // 2️⃣ Datos privados por jugador
+        // Datos privados por jugador
         result.players.forEach(player => {
             io.to(player.id).emit('game_started', {
                 myRole: player.role,
@@ -68,6 +68,40 @@ io.on('connection', (socket) => {
         const result = restartGame(roomCode);
         io.to(roomCode).emit('room_update', getRoomState(roomCode));
         io.to(roomCode).emit('game_reset');
+    });
+    socket.on('quick_game', () => {
+        const roomCode = generateRoomCode(); // misma función que ya usás
+
+        // Crear sala con el humano como host
+        const result = joinRoom(roomCode, 'Jugador', socket.id);
+
+        if (result.error) {
+            socket.emit('error', result.error);
+            return;
+        }
+
+        // Crear bots
+        addBotsToRoom(roomCode, 3);
+
+        socket.join(roomCode);
+
+        // Emitir estado
+        io.to(roomCode).emit('room_update', getRoomState(roomCode));
+
+        // Arrancar juego automáticamente
+        const startResult = startGame(roomCode);
+
+        io.to(roomCode).emit('room_update', getRoomState(roomCode));
+
+        // Enviar datos privados
+        startResult.players.forEach(player => {
+            if (!player.id.startsWith('BOT')) {
+                io.to(player.id).emit('game_started', {
+                    myRole: player.role,
+                    myWord: player.word === 'IMPOSTOR' ? null : player.word
+                });
+            }
+        });
     });
 
     socket.on('disconnect', () => {

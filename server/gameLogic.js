@@ -78,7 +78,9 @@ function startGame(roomCode) {
         p.votedFor = null;
         p.isDead = false;
     });
-
+    setTimeout(() => {
+        botVote(room);
+    }, 1500);
     return {
         players: room.players.map(p => ({
             id: p.id,
@@ -86,6 +88,37 @@ function startGame(roomCode) {
             word: p.secretWord
         }))
     };
+}
+function botVote(room) {
+    room.players
+        .filter(p => p.isBot && !p.isDead)
+        .forEach(bot => {
+            const targets = room.players.filter(
+                p => p.id !== bot.id && !p.isDead
+            );
+
+            const target = targets[Math.floor(Math.random() * targets.length)];
+
+            bot.votedFor = target.id;
+            room.votes[bot.id] = target.id;
+        });
+}
+
+function addBotsToRoom(roomCode, count = 3) {
+    const room = rooms[roomCode];
+    if (!room) return;
+
+    for (let i = 0; i < count; i++) {
+        room.players.push({
+            id: `BOT_${Date.now()}_${i}`,
+            name: `Bot 🤖 ${i + 1}`,
+            isBot: true,
+            role: null,
+            secretWord: null,
+            votedFor: null,
+            isDead: false
+        });
+    }
 }
 
 function handleVote(roomCode, voterId, targetId) {
@@ -246,5 +279,6 @@ module.exports = {
     handleVote,
     removePlayer,
     restartGame,
-    getRoomState
+    getRoomState,
+    addBotsToRoom
 };
