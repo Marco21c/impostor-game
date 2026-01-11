@@ -2,7 +2,7 @@ const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');
 const cors = require('cors');
-const { joinRoom, startGame, handleVote, removePlayer, restartGame, getRoomState, addBotsToRoom, generateBotVotes, handleChat } = require('./gameLogic');
+const { joinRoom, startGame, handleVote, removePlayer, restartGame, getRoomState, addBotsToRoom, generateBotVotes, handleChat, handleTimeout } = require('./gameLogic');
 
 // ... existing code ...
 
@@ -19,8 +19,23 @@ const io = new Server(server, {
     }
 });
 
+const roomTimers = {};
+
 io.on('connection', (socket) => {
     console.log('User connected:', socket.id);
+
+    const startRoomTimer = (roomCode) => {
+        if (roomTimers[roomCode]) clearTimeout(roomTimers[roomCode]);
+
+        roomTimers[roomCode] = setTimeout(() => {
+            const result = handleTimeout(roomCode);
+            if (result.gameOver) {
+                io.to(roomCode).emit('game_over', result.results);
+                delete roomTimers[roomCode];
+            }
+        }, 30000); // 30s
+    };
+
 
     socket.on('join_room', ({ roomCode, playerName }) => {
         const result = joinRoom(roomCode, playerName, socket.id);
@@ -32,8 +47,8 @@ io.on('connection', (socket) => {
         }
     });
 
-    socket.on('start_game', ({ roomCode }) => {
-        const result = startGame(roomCode);
+    socket.on('start_game', ({ roomCode, category }) => {
+        const result = startGame(roomCode, category);
 
         if (result.error) {
             socket.emit('error', result.error);
@@ -54,6 +69,7 @@ io.on('connection', (socket) => {
         });
 
         // Trigger Bot Votes if applicable
+        startRoomTimer(roomCode);
         const hasBots = result.players.some(p => p.isBot);
         if (hasBots) {
             setTimeout(() => {
@@ -77,9 +93,12 @@ io.on('connection', (socket) => {
             io.to(roomCode).emit('game_update', result.gameState);
         }
         if (result.gameOver) {
+            if (roomTimers[roomCode]) clearTimeout(roomTimers[roomCode]);
             io.to(roomCode).emit('game_over', result.results);
         }
         if (result.nextRound) {
+            startRoomTimer(roomCode); // Restart timer for next round
+
             // Bots need to vote again if they are alive
             setTimeout(() => {
                 const botVotes = generateBotVotes(roomCode);
@@ -162,6 +181,8 @@ io.on('connection', (socket) => {
                 myRole: me.role,
                 myWord: me.word
             });
+
+            startRoomTimer(roomCode);
 
             // 7. Simular votos de bots
             setTimeout(() => {

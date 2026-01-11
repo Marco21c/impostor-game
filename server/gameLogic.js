@@ -53,14 +53,19 @@ function joinRoom(roomCode, playerName, socketId) {
     return { roomCode };
 }
 
-function startGame(roomCode) {
+function startGame(roomCode, selectedCategory = null) {
     const room = rooms[roomCode];
     if (!room) return { error: "Room not found" };
     if (room.players.length < 3) return { error: "Need at least 3 players" }; // MVP rule
 
     // Pick Category and Word
     const categories = Object.keys(WORDS_DATA);
-    const category = categories[Math.floor(Math.random() * categories.length)];
+    let category = selectedCategory;
+
+    if (!category || !categories.includes(category)) {
+        category = categories[Math.floor(Math.random() * categories.length)];
+    }
+
     const words = WORDS_DATA[category];
     const word = words[Math.floor(Math.random() * words.length)];
 
@@ -69,6 +74,7 @@ function startGame(roomCode) {
     room.gameState = 'PLAYING';
     room.votes = {};
     room.chat = [];
+    room.endTime = Date.now() + 30000; // 30 seconds round
 
     // Assign Roles
     const impostorIndex = Math.floor(Math.random() * room.players.length);
@@ -302,7 +308,9 @@ function getRoomState(roomCode) {
         })),
         gameState: room.gameState,
         category: room.category, // Reveal category
-        chat: room.chat
+        chat: room.chat,
+        endTime: room.endTime,
+        availableCategories: Object.keys(WORDS_DATA)
     };
 }
 
@@ -310,6 +318,25 @@ function getInternalGameState(room) {
     return {
         // Same as getRoomState but maybe more info?
         ...getRoomState(room.id)
+    };
+}
+
+function handleTimeout(roomCode) {
+    const room = rooms[roomCode];
+    if (!room || room.gameState !== 'PLAYING') return {};
+
+    // Impostor wins if time runs out
+    const impostor = room.players.find(p => p.role === 'impostor');
+    room.gameState = 'RESULTS';
+
+    return {
+        gameOver: true,
+        results: {
+            winner: 'IMPOSTOR',
+            impostorName: impostor.name,
+            eliminatedName: 'Nadie (Tiempo Agotado)',
+            reason: "¡Se acabó el tiempo! Los ciudadanos no votaron a tiempo."
+        }
     };
 }
 
@@ -322,5 +349,6 @@ module.exports = {
     getRoomState,
     addBotsToRoom,
     generateBotVotes,
-    handleChat
+    handleChat,
+    handleTimeout
 };
