@@ -1,11 +1,13 @@
-import { useState } from 'react';
+
 import { socket } from '../socket';
-import { motion, AnimatePresence } from 'framer-motion';
+
 
 export default function GameRoom({ room, myId }) {
     const isHost = room.players.find(p => p.id === myId)?.isHost;
     const me = room.players.find(p => p.id === myId);
-
+    if (!me) return <div>Sincronizando jugador...</div>;
+    const myRole = room.myRole;
+    const myWord = room.myWord;
     const handleStart = () => {
         socket.emit('start_game', { roomCode: room.roomCode });
     };
@@ -45,15 +47,16 @@ export default function GameRoom({ room, myId }) {
                         </div>
                     ))}
                 </div>
-
+                <p>Debe haber al menos 3 jugadores </p>
                 {isHost ? (
                     <button
                         onClick={handleStart}
                         disabled={room.players.length < 3}
                         className="w-full py-4 bg-game-primary text-white text-xl font-bold rounded-xl shadow-lg shadow-game-primary/30 hover:scale-[1.02] transition-transform disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                        {room.players.length < 3 ? 'Esperando jugadores (min 3)...' : 'COMENZAR PARTIDA'}
+                        {room.players.length < 3 ? 'Esperando jugadores ...' : 'COMENZAR PARTIDA'}
                     </button>
+
                 ) : (
                     <div className="text-center text-game-muted animate-pulse">
                         Esperando a que el anfitrión inicie...
@@ -73,16 +76,16 @@ export default function GameRoom({ room, myId }) {
                     <div className="bg-game-card p-8 rounded-2xl border-2 border-game-primary/20 text-center shadow-xl mb-6">
                         <h3 className="text-game-muted uppercase tracking-widest text-sm mb-4">Tu Rol</h3>
                         <div className="text-4xl font-extrabold mb-2 text-white">
-                            {me.role === 'impostor' ? '👻 IMPOSTOR' : 'detective CIUDADANO'}
+                            {myRole === 'impostor' ? '👻 IMPOSTOR' : 'detective CIUDADANO'}
                         </div>
                         <div className="mt-8 p-6 bg-game-bg rounded-xl border border-game-muted/30">
                             <p className="text-game-muted text-sm mb-2">Tu palabra secreta es:</p>
-                            <p className="text-3xl font-mono text-game-accent">{me.secretWord || '???'}</p>
-                            {me.role === 'citizen' && (
+                            <p className="text-3xl font-mono text-game-accent">{myWord || '???'}</p>
+                            {myRole === 'citizen' && (
                                 <p className="text-xs text-game-muted mt-4">Categoría: {room.category}</p>
                             )}
                         </div>
-                        {me.role === 'impostor' && (
+                        {myRole === 'impostor' && (
                             <p className="text-sm text-game-muted mt-4 p-2 bg-game-accent/10 rounded">
                                 Intenta pasar desapercibido y adivinar la palabra de los demás.
                             </p>
@@ -105,8 +108,8 @@ export default function GameRoom({ room, myId }) {
                                     onClick={() => handleVote(p.id)}
                                     disabled={me.votedFor}
                                     className={`p-4 rounded-xl border flex justify-between items-center transition-all ${me.votedFor === p.id
-                                            ? 'bg-game-primary text-white border-game-primary'
-                                            : 'bg-game-card border-game-muted/30 hover:bg-game-card/80 hover:border-game-primary/50'
+                                        ? 'bg-game-primary text-white border-game-primary'
+                                        : 'bg-game-card border-game-muted/30 hover:bg-game-card/80 hover:border-game-primary/50'
                                         }`}
                                 >
                                     <span className="font-bold">{p.name}</span>
@@ -127,8 +130,8 @@ export default function GameRoom({ room, myId }) {
 
     if (room.gameState === 'RESULTS') {
         const results = room.results;
-        const isWinner = (results.winner === 'CITIZENS' && me.role === 'citizen') ||
-            (results.winner === 'IMPOSTOR' && me.role === 'impostor');
+        const isWinner = (results.winner === 'CITIZENS' && myRole === 'citizen') ||
+            (results.winner === 'IMPOSTOR' && myRole === 'impostor');
 
         return (
             <div className="text-center">
